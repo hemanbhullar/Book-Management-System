@@ -236,7 +236,78 @@ booky.post("/publication/new",(req,res) => {
     const newPublication = req.body;
     database.publication.push(newPublication);
     return res.json(database.publication)
-})
+});
+
+
+/*****PUT********/
+/**
+ * Route        /book/update
+ * Description  Update book on isbn
+ * Access       PUBLIC
+ * Parameter    isbn
+ * Methods      PUT
+ */
+
+booky.put("/book/update/:isbn", async (req,res) => {
+    const updatedBook = await BookModel.findOneAndUpdate({
+        ISBN: req.params.isbn
+    },
+    {
+        title: req.body.bookTitle
+    },
+    {
+        new: true
+    }
+    );
+    return res.json({
+        books:updatedBook
+    });
+});
+
+/******Updating new author and books simultaneously*/
+/**
+ * Route        /book/author/update
+ * Description  Update or Add a new Author
+ * Access       PUBLIC
+ * Parameter    isbn
+ * Methods      PUT
+ */
+booky.put("/book/author/update/:isbn", async(req,res) =>{
+    //Update book database
+    const updatedBook = await BookModel.findOneAndUpdate({
+        ISBN: req.params.isbn
+    },
+    {
+        $addToSet: {
+            authors: req.body.newAuthor
+        }
+    },{
+        new: true
+    });
+
+    //Update the author database
+    const updateAuthor = await AuthorModel.findOneAndUpdate({
+        id: req.body.newAuthor
+    },
+    {
+        $addToSet: {
+            books: req.params.isbn
+        }
+    },{
+        new: true
+    });
+
+    return res.json({
+        books: updatedBook,
+        author:updateAuthor,
+        message: "New author was added"
+    });
+});
+
+
+
+
+
 
 /**
  * Route        /publication/update/book
@@ -280,16 +351,24 @@ booky.put("/publication/update/book/:isbn", (req,res) => {
  * Methods      DELETE
  */
 
-booky.delete("/book/delete/:isbn", (req,res) => {
+booky.delete("/book/delete/:isbn", async (req,res) => {
+    const updatedBookDatabase = await BookModel.findOneAndDelete({
+        ISBN: req.params.isbn
+    }
+    );
+    return res.json({
+        books: updatedBookDatabase
+    });
+
     //Whichever book that does not match with the isbn, just sent it to an updatedBookDatabase array and rest will be filtered out
 
-    const updatedBookDatabase = database.books.filter(
-        (book) => book.ISBN != req.params.isbn
-    )
+    // const updatedBookDatabase = database.books.filter(
+    //     (book) => book.ISBN != req.params.isbn
+    // )
 
-    database.books = updatedBookDatabase;
+    // database.books = updatedBookDatabase;
 
-    return res.json({books: database.books});
+    // return res.json({books: database.books});
 });
 
 /**
